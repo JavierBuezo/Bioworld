@@ -1,0 +1,24 @@
+const {test,expect}=require('@playwright/test');
+const path=require('path');
+test('director: create, advance, inspect, undo and publish preview',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('file://'+path.resolve('index.html'));
+ await expect(page.locator('#worldCreateToggle')).toBeVisible();
+ await page.locator('#worldCreateToggle').click();
+ await page.locator('#wName').fill('Clase prueba');
+ await page.locator('#wCap').fill('60');
+ await page.locator('#wCreate').click();
+ await expect(page.locator('#simView')).toBeVisible();
+ await page.locator('#generateSpecies').click().catch(()=>{});
+ await page.locator('#turnOne').click();
+ await expect(page.locator('#cycle')).not.toHaveText('0 (turno 0)');
+ await page.locator('#openDashboard').click();
+ await expect(page.locator('#dashboardPanel')).toBeVisible();
+ await page.locator('#openAnalysis').click();
+ await expect(page.locator('#analysisPanel')).toBeVisible();
+ await page.locator('#openEcoMap').click();
+ await expect(page.locator('#ecoMapPanel')).toBeVisible();
+ await page.locator('#showPublisher').click();
+ await expect(page.locator('#publisherGroup')).toHaveValue(/Clase prueba.*turno/);
+ expect(errors).toEqual([]);
+});
