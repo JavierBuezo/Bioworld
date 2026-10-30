@@ -1,5 +1,13 @@
 const {test,expect}=require('@playwright/test');
 const path=require('path');
+test('director: responsive layout on narrow screen',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('file://'+path.resolve('index.html'));
+ await expect(page.locator('#worldHub')).toBeVisible();
+ await page.screenshot({path:'director-mobile.png',fullPage:true});
+ const width=await page.evaluate(()=>document.documentElement.scrollWidth);
+ expect(width).toBeLessThanOrEqual(405);
+});
 test('director: create, advance, inspect, undo and publish preview',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('file://'+path.resolve('index.html'));
