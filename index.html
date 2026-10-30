@@ -102,10 +102,10 @@ function step(){
   let requests=[];
   for(let i=0;i<S;i++){
    let pred=world.species[i],n=pred.population[b];if(pred.diet!=='carnivore'||!n)continue;
+   trophicDemand+=n*pred.traits.size*cfg.energy.demand_per_size;
    let eligible=world.species.filter(sp=>sp.id!==i&&sp.diet==='herbivore'&&sp.population[b]>0&&sp.traits.size<=pred.traits.size+(cfg.predation.max_prey_size_advantage??1)).sort((a,z)=>z.population[b]-a.population[b]).slice(0,pred.traits.breadth);
    let total=eligible.reduce((a,p)=>a+p.population[b],0);if(!total)continue;
    let target=n*pred.traits.size*cfg.energy.demand_per_size*(1+maxBirthFrac[i]);
-   trophicDemand+=n*pred.traits.size*cfg.energy.demand_per_size;
    for(let prey of eligible){
     let share=prey.population[b]/total,chance=clamp(cfg.predation.base_capture_probability*cfg.reproduction.trait_multipliers[pred.traits.attack-1]/cfg.reproduction.trait_multipliers[prey.traits.defense-1]);
     let encounter=prey.population[b]/(prey.population[b]+cfg.predation.prey_encounter_scale);
