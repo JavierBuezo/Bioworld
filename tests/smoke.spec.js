@@ -9,7 +9,6 @@ test('director: create, advance, inspect, undo and publish preview',async({page}
  await page.locator('#wCap').fill('60');
  await page.locator('#wCreate').click();
  await expect(page.locator('#simView')).toBeVisible();
- await page.locator('#generateSpecies').click().catch(()=>{});
  await page.locator('#turnOne').click();
  await expect(page.locator('#cycle')).not.toHaveText('0 (turno 0)');
  await page.locator('#openDashboard').click();
