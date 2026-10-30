@@ -343,14 +343,13 @@ async function githubPublish(fileName,payload,token){
  if(!res.ok){let info;try{info=(await res.json()).message}catch{}throw Error('No se pudo publicar: HTTP '+res.status+(info?' · '+info:''))}
  return (await res.json()).commit?.sha;
 }
-document.getElementById('showPublisher').onclick=()=>{const name=activeId?allWorlds()[activeId]?.name:document.getElementById('worldTitle').textContent;document.getElementById('publisherGroup').value=name||'';document.getElementById('publisherPanel').classList.remove('hidden');document.getElementById('publisherPanel').scrollIntoView({behavior:'smooth',block:'start'})};
+document.getElementById('showPublisher').onclick=()=>{const name=activeId?allWorlds()[activeId]?.name:document.getElementById('worldTitle').textContent;document.getElementById('publisherGroup').value=(name||'mundo')+'_turno_'+world.cycle;document.getElementById('publisherPanel').classList.remove('hidden');document.getElementById('publisherPanel').scrollIntoView({behavior:'smooth',block:'start'})};
 document.getElementById('closePublisher').onclick=()=>document.getElementById('publisherPanel').classList.add('hidden');
 document.getElementById('forgetPublishToken').onclick=()=>{publisherSecret='';document.getElementById('publisherToken').value='';document.getElementById('publishStatus').textContent='Token borrado de la sesión.'};
 document.getElementById('publishNow').onclick=async()=>{
  const button=document.getElementById('publishNow'),status=document.getElementById('publishStatus');
  try{
-  const name=activeId?allWorlds()[activeId]?.name:document.getElementById('worldTitle').textContent;
-  const file=publisherFilename(name||document.getElementById('publisherGroup').value);
+  const file=publisherFilename(document.getElementById('publisherGroup').value);
   const supplied=document.getElementById('publisherToken').value.trim();
   if(supplied)publisherSecret=supplied;
   document.getElementById('publisherToken').value='';
