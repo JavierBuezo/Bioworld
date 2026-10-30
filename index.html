@@ -23,7 +23,27 @@ function binomial(n,p){n=Math.max(0,Math.floor(n));p=Math.min(1,Math.max(0,p));i
 function clamp(x,a=0,b=1){return Math.max(a,Math.min(b,x))}
 function money(n){return Math.round(n).toLocaleString('es-ES')}
 function traits(){let v=Array.from({length:6},()=>1);for(let j=0;j<14;j++){let choices=v.map((x,i)=>x<5?i:-1).filter(i=>i>=0);v[choices[pick(choices.length)]]++}return {size:v[0],repro:v[1],defense:v[2],attack:v[3],breadth:v[4],adapt:v[5]}}
-function init(configuration){cfg=structuredClone(configuration);if(!cfg.enabled_biomes)cfg.enabled_biomes=BIOMES.map(x=>x.id);if(!cfg.enabled_biomes.length)throw Error('Elige al menos un bioma');if(cfg.species_count<1||cfg.species_count>1000)throw Error('Cupo fuera de rango');rand=rng(cfg.seed);let species=[];for(let i=0;i<(cfg.generate_initial_species===false?0:cfg.species_count);i++){const home=BIOMES.findIndex(x=>x.id===cfg.enabled_biomes[i%cfg.enabled_biomes.length]),diet=i%3===0?'carnivore':'herbivore',t=traits();const foods=[BIOMES[home].primary];for(let j=0;j<4;j++)if(!foods.includes(j))foods.push(j);species.push({id:i,name:`Species ${String(i+1).padStart(2,'0')}`,diet,home,traits:t,foods:foods.slice(0,t.breadth),population:Array.from({length:6},(_,b)=>b===home?cfg.initial_population:0),kills:0})}let biomes=BIOMES.map(b=>({resources:cfg.enabled_biomes.includes(b.id)?cfg.resources.regeneration[b.id].map(p=>p>0?Math.min(cfg.resources.max_biomass,p*5):0):[0,0,0,0],volcano:0}));world={cycle:0,species,biomes,kills:{},log:[],history:[],events:[]};record();render()}
+// Nombres seudotaxonómicos de fantasía: dos tablas combinadas, con sufijo -ensis.
+// Los bancos difieren entre grupos tróficos para que se reconozcan de un vistazo.
+// No corresponden a especies reales y no se alteran nombres introducidos por usuarios.
+const NAME_STARTS={
+ herbivore:['Flori','Viridi','Herbi','Prati','Silvi','Folii','Melli','Lumi','Aureli','Terri','Valli','Rubi','Celeri','Mossi','Brumi','Frondi','Campi','Lenti','Nivali','Pallidi','Lauri','Verdani','Rosali','Teneri','Germi','Solari','Paludi','Arbori','Grami','Petali','Mirti','Orchi','Fungi','Lunari','Dulci','Semini','Salvi','Ramuli','Nemori','Albi'],
+ carnivore:['Nocti','Umbri','Falci','Corvi','Lupi','Raptori','Feroci','Nigri','Vesperi','Acri','Venati','Serrati','Lanci','Tenebri','Furvi','Scuti','Draconi','Veloci','Tigrini','Sauri','Strigi','Ravini','Cauti','Sagitti','Pardali','Dentati','Alati','Cineri','Falcati','Morti','Obscuri','Turbini','Vigili','Ferrati','Aquilini','Lacrimi','Duri','Sileti','Igniti','Vorti']
+};
+const NAME_ENDS=['corv','myr','vent','lor','sylv','drax','mell','vulp','nix','fel','rad','tal','cer','lun','dor','vor','brix','nerv','mal','rhen','murm','sor','val','pter','gar','nox','tir','vel','morn','cal','ther','ferr','mir','ros','tarn','quill','pel','bris','ser','vird'];
+function inventedSpeciesName(diet,used){
+ const starts=NAME_STARTS[diet]||NAME_STARTS.herbivore;
+ const combinations=starts.length*NAME_ENDS.length;
+ // Sampling without replacement at the level of the assembled name.
+ const offset=pick(combinations);
+ for(let j=0;j<combinations;j++){
+  const k=(offset+j)%combinations;
+  const name=starts[Math.floor(k/NAME_ENDS.length)]+NAME_ENDS[k%NAME_ENDS.length]+'ensis';
+  if(!used.has(name.toLowerCase())){used.add(name.toLowerCase());return name}
+ }
+ throw Error('Se ha agotado el banco de nombres automáticos de '+diet);
+}
+function init(configuration){cfg=structuredClone(configuration);if(!cfg.enabled_biomes)cfg.enabled_biomes=BIOMES.map(x=>x.id);if(!cfg.enabled_biomes.length)throw Error('Elige al menos un bioma');if(cfg.species_count<1||cfg.species_count>1000)throw Error('Cupo fuera de rango');rand=rng(cfg.seed);let species=[],usedSpeciesNames=new Set();for(let i=0;i<(cfg.generate_initial_species===false?0:cfg.species_count);i++){const home=BIOMES.findIndex(x=>x.id===cfg.enabled_biomes[i%cfg.enabled_biomes.length]),diet=i%3===0?'carnivore':'herbivore',t=traits();const foods=[BIOMES[home].primary];for(let j=0;j<4;j++)if(!foods.includes(j))foods.push(j);species.push({id:i,name:inventedSpeciesName(diet,usedSpeciesNames),diet,home,traits:t,foods:foods.slice(0,t.breadth),population:Array.from({length:6},(_,b)=>b===home?cfg.initial_population:0),kills:0})}let biomes=BIOMES.map(b=>({resources:cfg.enabled_biomes.includes(b.id)?cfg.resources.regeneration[b.id].map(p=>p>0?Math.min(cfg.resources.max_biomass,p*5):0):[0,0,0,0],volcano:0}));world={cycle:0,species,biomes,kills:{},log:[],history:[],events:[]};record();render()}
 function record(force=false){if(!force&&world.history?.at(-1)?.cycle===world.cycle)return;let herb=0,carn=0;for(const s of world.species){let n=s.population.reduce((a,b)=>a+b,0);if(s.diet==='herbivore')herb+=n;else carn+=n}world.history.push({cycle:world.cycle,herb,carn,total:herb+carn,alive:world.species.filter(s=>s.population.some(x=>x>0)).length,biomass:world.biomes.reduce((a,b)=>a+b.resources.reduce((c,d)=>c+d,0),0),speciesPop:world.species.map(s=>[...s.population])})}
 function step(){
  if(!world.turnKills)world.turnKills={};
