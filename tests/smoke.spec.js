@@ -29,3 +29,15 @@ test('director: create, advance, inspect, undo and publish preview',async({page}
  await expect(page.locator('#publisherGroup')).toHaveValue(/Clase prueba.*turno/);
  expect(errors).toEqual([]);
 });
+
+test('theme: dark by default, toggle to light and persist',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+ await expect(page.locator('#themeToggle')).toBeVisible();
+ await page.locator('#themeToggle').click();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+ await page.reload();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+ await page.locator('#themeToggle').click();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+});
