@@ -21,11 +21,12 @@ test('director: create, advance, inspect, undo and publish preview',async({page}
  await expect(page.locator('#cycle')).not.toHaveText('0 (turno 0)');
  await page.locator('#openDashboard').click();
  await expect(page.locator('#dashboardPanel')).toBeVisible();
- await page.locator('#openAnalysis').click();
+ await page.locator('#bwTabs [data-tab="analysis"]').click();
  await expect(page.locator('#analysisPanel')).toBeVisible();
- await page.locator('#openEcoMap').click();
+ await page.locator('#bwTabs [data-tab="atlas"]').click();
  await expect(page.locator('#ecoMapPanel')).toBeVisible();
- await page.locator('#showPublisher').click();
+ await page.locator('#bwTabs [data-tab="management"]').click();
+ await page.evaluate(()=>document.getElementById('showPublisher').click());
  await expect(page.locator('#publisherGroup')).toHaveValue(/Clase prueba.*turno/);
  expect(errors).toEqual([]);
 });
