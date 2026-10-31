@@ -52,3 +52,12 @@ test('shared atlas: selects species and dims others',async({page})=>{
  await expect(page.locator('#ecoTerritoryMap g[role="button"]')).toHaveCount(0);
  expect(await page.evaluate(()=>!!window.BioWorldAtlas)).toBeTruthy();
 });
+
+test('atlas initially offers an all-species view',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();
+ await page.locator('#wCreate').click();
+ await page.locator('#bwTabs [data-tab="atlas"]').click();
+ await expect(page.locator('#ecoSpecies')).toHaveValue('');
+ await expect(page.locator('#ecoTerritoryMap')).toBeVisible();
+});
