@@ -821,7 +821,7 @@ function setup(){
  function show(id){for(const b of nav.children){const active=b.dataset.tab===id;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1}for(const k of Object.keys(pages))pages[k].hidden=k!==id;
  if(id==='atlas'){document.getElementById('ecoMapPanel').classList.remove('hidden');document.getElementById('openEcoMap').click()}
  if(id==='species')document.getElementById('openSpeciesCards').click();
- if(id==='analysis')document.getElementById('openDashboard').click();
+ if(id==='analysis'){document.getElementById('openDashboard').click();document.getElementById('openAnalysis').click()}
  if(id==='food')document.getElementById('openRanking').click();
  }
  const ids={atlas:['ecoMapPanel'],species:['speciesCardsPanel'],food:['rankingPanel'],analysis:['dashboardPanel','analysisPanel'],management:['publisherPanel','speciesEditor','disasterEditor']};
