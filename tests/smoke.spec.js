@@ -42,3 +42,13 @@ test('theme: dark by default, toggle to light and persist',async({page})=>{
  await page.locator('#themeToggle').click();
  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
 });
+
+test('shared atlas: selects species and dims others',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();
+ await page.locator('#wCreate').click();
+ await page.locator('#bwTabs [data-tab="atlas"]').click();
+ await expect(page.locator('#ecoTerritoryMap')).toBeVisible();
+ await expect(page.locator('#ecoTerritoryMap g[role="button"]')).toHaveCount(0);
+ expect(await page.evaluate(()=>!!window.BioWorldAtlas)).toBeTruthy();
+});
