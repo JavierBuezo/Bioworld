@@ -70,3 +70,20 @@ test('atlas corridors match the eight permitted dispersal connections',async({pa
  await expect(page.locator('#ecoTerritoryMap')).toHaveAttribute('viewBox','0 0 1000 920');
  await expect(page.locator('#ecoTerritoryMap')).toBeVisible();
 });
+
+test('world chronicle reports first colonization and only top two population changes',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();await page.locator('#wCreate').click();
+ const info=await page.evaluate(()=>{
+  world.species=Array.from({length:5},(_,i)=>({id:i,name:'Especie '+i,diet:'herbivore',home:0,population:[100+i*10,i===0?3:0,0,0,0,0]}));
+  world.cycle=1;
+  world.history=[{cycle:0,speciesPop:world.species.map((sp)=>[100,0,0,0,0,0])},{cycle:1,speciesPop:world.species.map(sp=>[...sp.population])}];
+  saveChronicle([100,100,100,100,100],world.species.map(sp=>sp.population.reduce((a,b)=>a+b,0)),1,1);
+  return {chronicle:world.chronicle[0],log:world.log[0],exported:buildStudentSnapshot().chronicle[0]};
+ });
+ expect(info.chronicle.colonized).toHaveLength(1);
+ expect(info.chronicle.colonized[0].biomeName).toBe('Pradera');
+ expect(info.chronicle.grown).toHaveLength(2);
+ expect(info.exported.colonized).toHaveLength(1);
+ expect(info.log).toContain('primera colonización');
+});
