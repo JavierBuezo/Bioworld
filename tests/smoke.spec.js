@@ -124,3 +124,14 @@ test('balance v6: adaptability governs dispersal and trait budget is 15',async({
  expect(result.multipliers).toEqual([.02,.07,.2,.6,1.2]);
  expect(result.defaults.reduce((a,b)=>a+b,0)).toBe(15);
 });
+
+test('map animal selection reveals compact six-trait mini card',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();await page.locator('#wCreate').click();
+ await page.evaluate(()=>{const config=structuredClone(cfg);config.species_count=12;config.generate_initial_species=true;init(config)});
+ await page.locator('#bwTabs [data-tab="atlas"]').click();
+ const first=page.locator('#ecoTerritoryMap g[aria-label*="individuos"]').first();
+ await first.click();
+ await expect(page.locator('#ecoSpeciesCard .bw-mini-stat')).toHaveCount(6);
+ await expect(page.locator('#ecoSpeciesCard')).toContainText('Adaptabilidad');
+});
