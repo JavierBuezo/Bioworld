@@ -120,8 +120,8 @@ test('balance v6: adaptability governs dispersal and trait budget is 15',async({
   return {totals,p,multipliers,defaults};
  });
  expect(new Set(result.totals)).toEqual(new Set([15]));
- expect(result.p).toBe(.002);
- expect(result.multipliers).toEqual([.02,.07,.2,.6,1.2]);
+ expect(result.p).toBe(.01);
+ expect(result.multipliers).toEqual([.1,.25,.6,1.5,3.5]);
  expect(result.defaults.reduce((a,b)=>a+b,0)).toBe(15);
 });
 
@@ -134,4 +134,28 @@ test('map animal selection reveals compact six-trait mini card',async({page})=>{
  await first.click();
  await expect(page.locator('#ecoSpeciesCard .bw-mini-stat')).toHaveCount(6);
  await expect(page.locator('#ecoSpeciesCard')).toContainText('Adaptabilidad');
+});
+
+
+test('dispersal probabilities reward adaptability more than population growth',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ const rates=await page.evaluate(()=>{
+  const p=(adapt,n)=>DEFAULT.dispersal.base_probability*DEFAULT.dispersal.adaptability_multipliers[adapt-1]*Math.min(1.6,.4+.4*Math.log10(n/20));
+  return {initial:p(5,150),large:p(5,5000),low:p(2,5000),medium:p(4,150)};
+ });
+ expect(rates.initial).toBeGreaterThan(.02);
+ expect(rates.initial).toBeLessThan(.03);
+ expect(rates.large).toBeGreaterThan(rates.initial);
+ expect(rates.low).toBeLessThan(rates.medium);
+});
+
+test('a single survivor cannot reproduce without additional immigration',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ const result=await page.evaluate(()=>{
+  const one=1,capacity=100,fecundity=1;
+  const births=survivors=>survivors>=2?Math.min(capacity,binomial(survivors,clamp(fecundity))):0;
+  return {one:births(one),two:births(2)};
+ });
+ expect(result.one).toBe(0);
+ expect(result.two).toBe(2);
 });
