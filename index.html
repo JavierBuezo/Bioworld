@@ -223,9 +223,9 @@ function step(){
   let grouped=new Map();for(let x of requests){if(!grouped.has(x.prey))grouped.set(x.prey,[]);grouped.get(x.prey).push(x)}
   for(let [prey,list] of grouped){
    let accessiblePrey=world.species[prey];
-   trophicAccessible+=Math.floor(accessiblePrey.population[b]*clamp(cfg.predation.max_prey_fraction_per_cycle??.17))*accessiblePrey.traits.size*cfg.energy.prey_energy_per_size;
-   let rawCap=world.species[prey].population[b]*clamp(cfg.predation.max_prey_fraction_per_cycle??.17);
-   let cap=Math.floor(rawCap)+(rand()<rawCap%1?1:0),sum=list.reduce((a,x)=>a+x.expected,0),remaining=cap;
+   trophicAccessible+=accessiblePrey.population[b]*accessiblePrey.traits.size*cfg.energy.prey_energy_per_size;
+   // Available prey, predator hunting effort and energy needs are the only limits.
+   let cap=accessiblePrey.population[b],sum=list.reduce((a,x)=>a+x.expected,0),remaining=cap;
    for(let x of list){x.kills=Math.min(remaining,Math.floor(x.expected*(sum>cap?cap/sum:1)));remaining-=x.kills}
    for(let x of list){let fraction=x.expected*(sum>cap?cap/sum:1)-x.kills;if(remaining>0&&rand()<fraction){x.kills++;remaining--}}
    for(let x of list){
