@@ -400,10 +400,23 @@ world.species.forEach((s,i)=>{let before=previous[i]||0,after=next[i]||0,diff=af
 if(before>0&&after===0)extinct.push({name:s.name,before});
 else if(before>0&&diff>0)grown.push({name:s.name,before,after,diff,pct:Math.round(100*diff/before)});
 else if(before>0&&diff<0)declined.push({name:s.name,before,after,diff,pct:Math.round(100*diff/before)})});
+// Detect establishment in a biome by comparing saved per-biome population snapshots.
+const previousSnapshot=world.history.at(-2)?.speciesPop||[];
+const colonized=[];
+world.species.forEach((sp,i)=>{
+ const before=previousSnapshot[i];if(!before)return;
+ for(let b=0;b<6;b++){
+  if(b===sp.home || (before[b]||0)>0 || (sp.population[b]||0)<=0)continue;
+  const seenBefore=world.history.slice(0,-1).some(h=>(h.speciesPop?.[i]?.[b]||0)>0);
+  colonized.push({id:sp.id,name:sp.name,biome:b,biomeName:BIOMES[b].name,population:sp.population[b],kind:seenBefore?'recolonización':'primera colonización'});
+ }
+});
 grown.sort((a,b)=>b.diff-a.diff);declined.sort((a,b)=>a.diff-b.diff);
 let events=(world.events||[]).filter(e=>e.start<=to&&e.start+e.duration-1>=from).map(e=>({name:EVENT_LABELS[e.type]||e.type,biome:e.biome==='all'?'Todos los biomas':BIOMES[Number(e.biome)]?.name||'Bioma',intensity:Math.round(e.intensity*100),start:e.start,end:e.start+e.duration-1}));
-world.chronicle.unshift({from,to,extinct,grown:grown.slice(0,8),declined:declined.slice(0,8),events,alive:next.filter(x=>x>0).length,total:next.reduce((a,b)=>a+b,0)});
+world.chronicle.unshift({from,to,extinct,grown:grown.slice(0,2),declined:declined.slice(0,2),colonized,events,alive:next.filter(x=>x>0).length,total:next.reduce((a,b)=>a+b,0)});
 if(world.chronicle.length>70)world.chronicle.length=70;
+for(const arrival of colonized)world.log.unshift('Ciclo '+to+': '+arrival.kind+' de '+arrival.name+' en '+arrival.biomeName+' ('+money(arrival.population)+' individuos).');
+if(world.log.length>70)world.log.length=70;
 }
 function drawChronicle(){
 let el=document.getElementById('chronicle');if(el.dataset.collapsed==='true'){el.innerHTML='';return}
@@ -412,6 +425,7 @@ let eventHtml=e.events.map(v=>'<div class="chronicleItem chronicleEvent">⚠ '+s
 let extinct=e.extinct.map(v=>'<div class="chronicleItem chronicleBad">✖ EXTINCIÓN: '+safeText(v.name)+' ('+money(v.before)+' → 0)</div>').join('');
 let growth=e.grown.map(v=>'<div class="chronicleItem chronicleUp">▲ '+safeText(v.name)+' · +'+money(v.diff)+' ('+v.pct+'%)</div>').join('');
 let loss=e.declined.map(v=>'<div class="chronicleItem chronicleDown">▼ '+safeText(v.name)+' · '+money(v.diff)+' ('+v.pct+'%)</div>').join('');
+let colonization=(e.colonized||[]).map(v=>'<div class="chronicleItem chronicleEvent">🌱 '+safeText(v.kind)+' · '+safeText(v.name)+' → '+safeText(v.biomeName)+' · '+money(v.population)+' individuos</div>').join('');
 return '<div class="chronicleEntry"><div class="chronicleTurn">🕰️ Turno '+e.to+' · '+e.alive+' especies vivas · '+money(e.total)+' individuos</div><div>'+e.events.map(v=>'<span class="timelineBadge">⚠ '+safeText(v.name)+' · '+safeText(v.biome)+'</span>').join('')+e.extinct.map(v=>'<span class="timelineBadge">💀 '+safeText(v.name)+'</span>').join('')+'</div>'+eventHtml+extinct+'<div class="chronicleCols"><div><strong class="chronicleUp">Poblaciones en crecimiento</strong>'+ (growth||'<div class="caption">Ninguna</div>')+'</div><div><strong class="chronicleDown">Poblaciones en descenso</strong>'+(loss||'<div class="caption">Ninguna</div>')+'</div></div></div>'
 }).join(''):'<p class="caption">La crónica se registrará a partir del próximo turno. Se conservan los datos históricos anteriores de la partida, pero no se inventan los cambios por especie de turnos anteriores.</p>';
 }
@@ -426,7 +440,7 @@ function buildStudentSnapshot(){
  for(const turn of world.chronicle||[])for(const e of turn.events||[]){const key=[e.name,e.start,e.end,e.biome].join('|');events.set(key,{name:e.name,start:e.start,end:e.end,biome:e.biome,intensity:e.intensity})}
  for(const e of world.events||[]){const key=[EVENT_LABELS[e.type]||e.type,e.start,e.start+e.duration-1,e.biome==='all'?'Todos los biomas':BIOMES[Number(e.biome)]?.name].join('|');if(!events.has(key))events.set(key,{name:EVENT_LABELS[e.type]||e.type,start:e.start,end:e.start+e.duration-1,biome:e.biome==='all'?'Todos los biomas':BIOMES[Number(e.biome)]?.name,intensity:Math.round(e.intensity*100)})}
  // Export only observable results; no editable configuration, seed, RNG state or undo snapshots.
- const payload={format:'bioworld-viewer-v1',title:document.getElementById('worldTitle')?.textContent||'BioWorld',exportedCycle:current?.cycle??world.cycle,biomes:cfg.enabled_biomes,resources:RESOURCE_NAMES,species:world.species.map(sp=>({id:sp.id,name:sp.name,diet:sp.diet,home:sp.home,traits:{...sp.traits},population:[...sp.population],kills:sp.kills||0})),history:world.history.map(h=>({cycle:h.cycle,herb:h.herb,carn:h.carn,total:h.total,alive:h.alive,biomass:h.biomass,speciesPop:(h.speciesPop||[]).map(p=>[...p])})),events:[...events.values()],predation:Object.entries(world.kills||{}).map(([key,captures])=>{const [predator,prey]=key.split('|').map(Number);return {predator,prey,captures}}),biomeResources:world.biomes.map(b=>[...b.resources]),chronicle:(world.chronicle||[]).map(c=>({from:c.from,to:c.to,extinct:c.extinct,grown:c.grown,declined:c.declined}))};
+ const payload={format:'bioworld-viewer-v1',title:document.getElementById('worldTitle')?.textContent||'BioWorld',exportedCycle:current?.cycle??world.cycle,biomes:cfg.enabled_biomes,resources:RESOURCE_NAMES,species:world.species.map(sp=>({id:sp.id,name:sp.name,diet:sp.diet,home:sp.home,traits:{...sp.traits},population:[...sp.population],kills:sp.kills||0})),history:world.history.map(h=>({cycle:h.cycle,herb:h.herb,carn:h.carn,total:h.total,alive:h.alive,biomass:h.biomass,speciesPop:(h.speciesPop||[]).map(p=>[...p])})),events:[...events.values()],predation:Object.entries(world.kills||{}).map(([key,captures])=>{const [predator,prey]=key.split('|').map(Number);return {predator,prey,captures}}),biomeResources:world.biomes.map(b=>[...b.resources]),chronicle:(world.chronicle||[]).map(c=>({from:c.from,to:c.to,extinct:c.extinct,grown:c.grown,declined:c.declined,colonized:c.colonized||[]}))};
  return payload
 }
 function studentViewerExport(){download('bioworld_visor_turno_'+world.cycle+'.json',JSON.stringify(buildStudentSnapshot(),null,2))}
