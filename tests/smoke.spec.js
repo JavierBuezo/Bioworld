@@ -61,3 +61,12 @@ test('atlas initially offers an all-species view',async({page})=>{
  await expect(page.locator('#ecoSpecies')).toHaveValue('');
  await expect(page.locator('#ecoTerritoryMap')).toBeVisible();
 });
+
+test('atlas corridors match the eight permitted dispersal connections',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();await page.locator('#wCreate').click();await page.locator('#bwTabs [data-tab="atlas"]').click();
+ const paths=page.locator('#ecoTerritoryMap g[aria-label="Corredores ecológicos permanentes"] path');
+ await expect(paths).toHaveCount(16);
+ await expect(page.locator('#ecoTerritoryMap')).toHaveAttribute('viewBox','0 0 1000 920');
+ await expect(page.locator('#ecoTerritoryMap')).toBeVisible();
+});
