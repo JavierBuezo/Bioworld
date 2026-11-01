@@ -92,7 +92,9 @@ test('first simulated turn creates colonization news with forced migration',asyn
  await page.goto('file://'+path.resolve('index.html'));
  await page.locator('#worldCreateToggle').click();await page.locator('#wCreate').click();
  const check=await page.evaluate(()=>{
+  cfg.generate_initial_species=true;cfg.species_count=12;cfg.initial_population=120;
   cfg.dispersal.base_probability=1;cfg.dispersal.minimum_population=1;
+  init(cfg);
   const baseline=world.species.map(sp=>sp.population.map(x=>x));
   run(1);
   const entries=world.chronicle[0]?.colonized||[];
