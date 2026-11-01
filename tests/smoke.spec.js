@@ -87,3 +87,20 @@ test('world chronicle reports first colonization and only top two population cha
  expect(info.exported.colonized).toHaveLength(1);
  expect(info.log).toContain('primera colonización');
 });
+
+test('first simulated turn creates colonization news with forced migration',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();await page.locator('#wCreate').click();
+ const check=await page.evaluate(()=>{
+  cfg.dispersal.base_probability=1;cfg.dispersal.minimum_population=1;
+  const baseline=world.species.map(sp=>sp.population.map(x=>x));
+  run(1);
+  const entries=world.chronicle[0]?.colonized||[];
+  return {baseline,entries,text:document.getElementById('chronicle').textContent,
+    log:world.log.join(' ')};
+ });
+ expect(check.entries.length).toBeGreaterThan(0);
+ expect(check.text).toContain('primera colonización');
+ expect(check.log).toContain('primera colonización');
+ for(const c of check.entries)expect(check.baseline[c.id][c.biome]).toBe(0);
+});
