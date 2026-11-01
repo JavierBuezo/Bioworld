@@ -67,6 +67,17 @@ test('60-turn ecological balance survey',async({page})=>{
  console.log('BIOWORLD_SURVEY_WORLDS '+JSON.stringify(out.records));
  console.log('BIOWORLD_SURVEY_TRAITS '+JSON.stringify([1,2,3,4,5].map(adapt=>{const r=out.speciesRows.filter(x=>x.adapt===adapt);const a=r.filter(x=>x.colonized);return {adapt,species:r.length,colonized:a.length,rate:a.length/r.length,meanFirstArrival:mean(a.map(x=>x.firstTurn))}})));
  console.log('BIOWORLD_SURVEY_BY_GROUP '+JSON.stringify([...new Set(out.records.map(x=>x.group))].map(group=>{const r=out.records.filter(x=>x.group===group);const sp=out.speciesRows.filter(x=>x.group===group);return {group,worlds:r.length,meanFirstWorldArrival:mean(r.map(x=>x.firstWorldTurn).filter(Number.isFinite)),meanColonizerArrival:mean(sp.filter(x=>x.colonized).map(x=>x.firstTurn)),rateEverColonized:sp.filter(x=>x.colonized).length/sp.length,meanSurvivors:mean(r.map(x=>x.aliveAt60/x.species)),meanFinalPopulationRatio:mean(r.map(x=>x.ratioFinalTotal)),meanChange50:mean(r.map(x=>x.change50)),rangeFirstWorldTurn:[Math.min(...r.filter(x=>x.firstWorldTurn!==null).map(x=>x.firstWorldTurn)),Math.max(...r.filter(x=>x.firstWorldTurn!==null).map(x=>x.firstWorldTurn))]}})));
+ console.log('BIOWORLD_SURVEY_COLONIZATION_TIMING '+JSON.stringify({
+    firstTurnArrivals:out.colonizations.filter(a=>a.fresh&&a.t===1).length,
+    byTurn5:out.colonizations.filter(a=>a.fresh&&a.t<=5).length,
+    byTurn10:out.colonizations.filter(a=>a.fresh&&a.t<=10).length,
+    byTurn20:out.colonizations.filter(a=>a.fresh&&a.t<=20).length,
+    byTurn40:out.colonizations.filter(a=>a.fresh&&a.t<=40).length,
+    byTurn60:out.colonizations.filter(a=>a.fresh&&a.t<=60).length,
+    last20Recolonizations:out.colonizations.filter(a=>!a.fresh&&a.t>40).length,
+    meanMigrationEventsPerWorld:out.colonizations.length/out.records.length,
+    speciesNeverColonized:out.speciesRows.filter(x=>!x.colonized).length
+ }));
  console.log('BIOWORLD_SURVEY_TIME '+JSON.stringify([10,20,40,60].map(turn=>{const r=out.populations.filter(x=>x.turn===turn);return {turn,meanAlive:mean(r.map(x=>x.richnessFraction)),meanAbundance:mean(r.map(x=>x.abundance)),meanChange50:mean(r.map(x=>x.gt50))}})));
  expect(out.records.length).toBe(36);
 });
