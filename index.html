@@ -150,11 +150,13 @@ function inventedSpeciesName(diet,used){
  throw Error('Se ha agotado el banco de nombres automáticos de '+diet);
 }
 function init(configuration){cfg=structuredClone(configuration);if(!cfg.enabled_biomes)cfg.enabled_biomes=BIOMES.map(x=>x.id);if(!cfg.enabled_biomes.length)throw Error('Elige al menos un bioma');if(cfg.species_count<1||cfg.species_count>1000)throw Error('Cupo fuera de rango');rand=rng(cfg.seed);let species=[],usedSpeciesNames=new Set();for(let i=0;i<(cfg.generate_initial_species===false?0:cfg.species_count);i++){const home=BIOMES.findIndex(x=>x.id===cfg.enabled_biomes[i%cfg.enabled_biomes.length]),diet=Math.floor(i/cfg.enabled_biomes.length)%3===2?'carnivore':'herbivore',t=traits();const foods=[BIOMES[home].primary];for(let j=0;j<4;j++)if(!foods.includes(j))foods.push(j);species.push({id:i,name:inventedSpeciesName(diet,usedSpeciesNames),diet,home,traits:t,foods:foods.slice(0,t.breadth),population:Array.from({length:6},(_,b)=>b===home?(diet==='carnivore'?Math.max(1,Math.round(cfg.initial_population*(cfg.predation.initial_predator_population_fraction??.23))):cfg.initial_population):0),kills:0})}let biomes=BIOMES.map(b=>({resources:cfg.enabled_biomes.includes(b.id)?cfg.resources.regeneration[b.id].map(p=>p>0?Math.min(cfg.resources.max_biomass,p*5):0):[0,0,0,0],volcano:0}));world={cycle:0,species,biomes,kills:{},log:[],history:[],events:[]};record();render()}
-function record(force=false){if(!force&&world.history?.at(-1)?.cycle===world.cycle)return;let herb=0,carn=0;for(const s of world.species){let n=s.population.reduce((a,b)=>a+b,0);if(s.diet==='herbivore')herb+=n;else carn+=n}world.history.push({cycle:world.cycle,herb,carn,total:herb+carn,alive:world.species.filter(s=>s.population.some(x=>x>0)).length,biomass:world.biomes.reduce((a,b)=>a+b.resources.reduce((c,d)=>c+d,0),0),speciesPop:world.species.map(s=>[...s.population]),trophic:world.lastTrophic?{...world.lastTrophic}:null})}
+function record(force=false){if(!force&&world.history?.at(-1)?.cycle===world.cycle)return;let herb=0,carn=0;for(const s of world.species){let n=s.population.reduce((a,b)=>a+b,0);if(s.diet==='herbivore')herb+=n;else carn+=n}world.history.push({cycle:world.cycle,herb,carn,total:herb+carn,alive:world.species.filter(s=>s.population.some(x=>x>0)).length,biomass:world.biomes.reduce((a,b)=>a+b.resources.reduce((c,d)=>c+d,0),0),speciesPop:world.species.map(s=>[...s.population]),trophic:world.lastTrophic?{...world.lastTrophic}:null,deaths:world.lastDeaths?structuredClone(world.lastDeaths):null})}
 function step(){
  if(!world.turnKills)world.turnKills={};
  const S=world.species.length,energy=Array.from({length:S},()=>Array(6).fill(0)),predationLoss=Array.from({length:S},()=>Array(6).fill(0));
- let birthsTotal=0,deathsTotal=0;let trophicDemand=0,trophicAccessible=0,trophicAcquired=0;
+ let birthsTotal=0,deathsTotal=0;
+ const deathStats=world.species.map(()=>({predation:0,starvation:0,environment:0,other:0,births:0,biomes:Array.from({length:6},()=>({predation:0,starvation:0,environment:0,other:0,births:0}))}));
+ let trophicDemand=0,trophicAccessible=0,trophicAcquired=0;
  // Resource allocation: individual demand for survival plus possible offspring, all species compete simultaneously.
  for(let b=0;b<6;b++){
   if(!cfg.enabled_biomes.includes(BIOMES[b].id))continue;
@@ -222,11 +224,12 @@ function step(){
   for(let [prey,list] of grouped){
    let accessiblePrey=world.species[prey];
    trophicAccessible+=Math.floor(accessiblePrey.population[b]*clamp(cfg.predation.max_prey_fraction_per_cycle??.17))*accessiblePrey.traits.size*cfg.energy.prey_energy_per_size;
-   let cap=Math.floor(world.species[prey].population[b]*clamp(cfg.predation.max_prey_fraction_per_cycle??.17)),sum=list.reduce((a,x)=>a+x.expected,0),remaining=cap;
+   let rawCap=world.species[prey].population[b]*clamp(cfg.predation.max_prey_fraction_per_cycle??.17);
+   let cap=Math.floor(rawCap)+(rand()<rawCap%1?1:0),sum=list.reduce((a,x)=>a+x.expected,0),remaining=cap;
    for(let x of list){x.kills=Math.min(remaining,Math.floor(x.expected*(sum>cap?cap/sum:1)));remaining-=x.kills}
    for(let x of list){let fraction=x.expected*(sum>cap?cap/sum:1)-x.kills;if(remaining>0&&rand()<fraction){x.kills++;remaining--}}
    for(let x of list){
-    predationLoss[prey][b]+=x.kills;energy[x.pred][b]+=x.kills*world.species[prey].traits.size*cfg.energy.prey_energy_per_size;
+    predationLoss[prey][b]+=x.kills;deathStats[prey].predation+=x.kills;deathStats[prey].biomes[b].predation+=x.kills;energy[x.pred][b]+=x.kills*world.species[prey].traits.size*cfg.energy.prey_energy_per_size;
     trophicAcquired+=x.kills*world.species[prey].traits.size*cfg.energy.prey_energy_per_size;
     let key=x.pred+'|'+prey;world.kills[key]=(world.kills[key]||0)+x.kills;
     if(x.kills){world.turnKills[key]=(world.turnKills[key]||0)+x.kills;world.species[x.pred].kills+=x.kills}
@@ -242,13 +245,17 @@ function step(){
   let starvation=clamp((1-foodFraction)*.85);
   let environment=b===sp.home?0:cfg.adaptation.environmental_mortality_max*(1-cfg.adaptation.foreign_multiplier[sp.traits.adapt-1]);
   let epidemic=eventEffect(b,'mortality',world.cycle+1,null,sp.diet);
-  let deaths=binomial(remaining,clamp(1-(1-cfg.mortality.baseline_rate)*(1-starvation)*(1-environment)*(1-epidemic)));
+  let baseline=cfg.mortality.baseline_rate;
+  let deaths=0;
+  const risks=[['starvation',starvation],['environment',environment],['other',baseline],['other',epidemic]];
+  for(let individual=0;individual<remaining;individual++)for(const [cause,risk] of risks){if(rand()<clamp(risk)){deaths++;deathStats[i][cause]++;deathStats[i].biomes[b][cause]++;break}}
   let survivors=remaining-deaths;
   let surplus=Math.max(0,support-survivors);
   let capacity=Math.max(0,Math.floor(surplus));
   let fecundity=Math.max(0,Math.max(.36,cfg.reproduction.base_rate||.26)*cfg.reproduction.trait_multipliers[sp.traits.repro-1]);
   let births=survivors>=2?Math.min(capacity,binomial(survivors,clamp(fecundity))):0;
   sp.population[b]=survivors+births;
+  deathStats[i].births+=births;deathStats[i].biomes[b].births+=births;
   deathsTotal+=deaths+predationLoss[i][b];birthsTotal+=births;
  }
  // Migration before regeneration.
@@ -277,6 +284,7 @@ function step(){
    biome.resources[r]=Math.min(cap,biome.resources[r]+production)
   }
  }
+ world.lastDeaths=deathStats;
  world.lastTrophic={demand:trophicDemand,accessible:trophicAccessible,acquired:trophicAcquired};
  world.cycle++;
  for(let e of world.events||[])if(e.start===world.cycle)world.log.unshift('Ciclo '+world.cycle+': comienza '+(EVENT_LABELS[e.type]||e.type)+(e.type==='foodloss'?' ('+RESOURCE_NAMES[e.food]+')':'')+'.');
@@ -637,7 +645,9 @@ function renderSpeciesCard(){
  if(!sp){document.getElementById('speciesCardDetails').textContent='No hay especies.';return}
  speciesCardId=sp.id;select.value=String(sp.id);
  const total=sp.population.reduce((a,n)=>a+n,0),home=BIOMES[sp.home]?.name||'—';
- document.getElementById('speciesCardDetails').innerHTML='<h3>'+safeText(sp.name)+'</h3><p>'+(sp.diet==='herbivore'?'🌿 Herbívoro':'🦉 Carnívoro')+' · Bioma de origen: '+safeText(home)+' · <strong>'+money(total)+' individuos</strong> · Capturas acumuladas: '+money(sp.kills||0)+(total?'':' · 💀 EXTINTA')+'</p>';
+ const recent=world.lastDeaths?.[sp.id];
+ const deathSummary=recent?'<p><strong>Último ciclo · muertes:</strong> '+money(recent.predation+recent.starvation+recent.environment+recent.other)+' (depredación '+money(recent.predation)+' · inanición '+money(recent.starvation)+' · ambiente '+money(recent.environment)+' · otras '+money(recent.other)+') · Nacimientos '+money(recent.births)+'</p>':'<p>Sin registro de mortalidad para el último ciclo.</p>';
+ document.getElementById('speciesCardDetails').innerHTML='<h3>'+safeText(sp.name)+'</h3><p>'+(sp.diet==='herbivore'?'🌿 Herbívoro':'🦉 Carnívoro')+' · Bioma de origen: '+safeText(home)+' · <strong>'+money(total)+' individuos</strong> · Capturas acumuladas: '+money(sp.kills||0)+(total?'':' · 💀 EXTINTA')+'</p>'+deathSummary;
  document.getElementById('speciesCardTraits').innerHTML=Object.entries(TRAIT_NAMES).map(([k,label])=>'<div class="traitMeter"><span>'+safeText(label)+'</span><div class="traitTrack"><div class="traitFill" style="width:'+(sp.traits[k]*20)+'%"></div></div><b>'+sp.traits[k]+'</b></div>').join('');
  document.getElementById('speciesCardBiomes').innerHTML=BIOMES.map((b,i)=>cfg.enabled_biomes.includes(b.id)?'<span class="timelineBadge">'+safeText(b.name)+': '+money(sp.population[i]||0)+'</span>':'').join('');
  if(sp.diet==='herbivore')document.getElementById('speciesCardDiet').textContent='Alimentos accesibles: '+sp.foods.map(i=>RESOURCE_NAMES[i]||'Recurso').join(', ')+'.';
