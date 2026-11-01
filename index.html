@@ -381,11 +381,12 @@ function run(n){
  for(let i=0;i<n;i++){
   saveUndo('turno '+(world.cycle+1));
   const previous=world.species.map(sp=>sp.population.reduce((a,x)=>a+x,0));
+  const previousBiome=world.species.map(sp=>[...sp.population]);
   const before=world.cycle;
   step();
   world.lastTurnKills={...world.turnKills};world.turnKills={};
   const next=world.species.map(sp=>sp.population.reduce((a,x)=>a+x,0));
-  saveChronicle(previous,next,before+1,world.cycle);
+  saveChronicle(previous,next,before+1,world.cycle,previousBiome);
  }
  render();drawChronicle();
  if(!document.getElementById('analysisPanel').classList.contains('hidden'))analyzeWorld();
@@ -393,7 +394,7 @@ function run(n){
  persistWorld();
  document.getElementById('status').textContent='Avanzados '+n+' turnos. Turno actual: '+world.cycle+'. Puedes deshacer hasta cinco pasos.';
 }
-function saveChronicle(previous,next,from,to){
+function saveChronicle(previous,next,from,to,previousBiome=null){
 if(!world.chronicle)world.chronicle=[];
 let extinct=[],grown=[],declined=[];
 world.species.forEach((s,i)=>{let before=previous[i]||0,after=next[i]||0,diff=after-before;
@@ -401,7 +402,7 @@ if(before>0&&after===0)extinct.push({name:s.name,before});
 else if(before>0&&diff>0)grown.push({name:s.name,before,after,diff,pct:Math.round(100*diff/before)});
 else if(before>0&&diff<0)declined.push({name:s.name,before,after,diff,pct:Math.round(100*diff/before)})});
 // Detect establishment in a biome by comparing saved per-biome population snapshots.
-const previousSnapshot=world.history.at(-2)?.speciesPop||[];
+const previousSnapshot=previousBiome||world.history.at(-2)?.speciesPop||[];
 const colonized=[];
 world.species.forEach((sp,i)=>{
  const before=previousSnapshot[i];if(!before)return;
