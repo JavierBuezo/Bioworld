@@ -159,3 +159,15 @@ test('a single survivor cannot reproduce without additional immigration',async({
  expect(result.one).toBe(0);
  expect(result.two).toBe(2);
 });
+
+
+test('mortality ledger reconciles deaths and keeps per-biome counts',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ const data=await page.evaluate(()=>{
+  const c=structuredClone(DEFAULT);c.species_count=30;c.seed=3191;init(c);
+  step();
+  return world.lastDeaths.map((d,i)=>({id:i,global:d.predation+d.starvation+d.environment+d.other,local:d.biomes.reduce((sum,b)=>sum+b.predation+b.starvation+b.environment+b.other,0),births:d.births,localBirths:d.biomes.reduce((sum,b)=>sum+b.births,0),nonnegative:Object.values(d).filter(Number.isFinite).every(n=>n>=0)}));
+ });
+ expect(data.length).toBe(30);
+ for(const d of data){expect(d.global).toBe(d.local);expect(d.births).toBe(d.localBirths);expect(d.nonnegative).toBe(true)}
+});
