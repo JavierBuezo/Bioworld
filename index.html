@@ -167,7 +167,7 @@ function step(){
    if(ev.type==='foodloss'){const r=Number(ev.food);if(r>=0&&r<4)biome.resources[r]*=(1-ev.intensity)}
    if(ev.type==='fire'||ev.type==='volcano')for(let r=0;r<4;r++)biome.resources[r]*=(1-ev.intensity)
   }
-  const potential=world.species.map(sp=>sp.diet==='herbivore'?Math.max(0,sp.population[b])*sp.traits.size*cfg.energy.demand_per_size:0);
+  const potential=world.species.map(sp=>sp.diet==='herbivore'?Math.max(0,sp.population[b])*Math.pow(sp.traits.size,0.75)*cfg.energy.demand_per_size:0);
   const maxBirthFrac=world.species.map(sp=>Math.max(0,Math.min(.9,Math.max(.36,cfg.reproduction.base_rate||.26)*cfg.reproduction.trait_multipliers[sp.traits.repro-1])));
   const wants=potential.map((d,i)=>d*(1+maxBirthFrac[i]));
   // Multiple passes let generalists redirect their feeding to resources that still exist.
@@ -209,10 +209,10 @@ function step(){
   let requests=[];
   for(let i=0;i<S;i++){
    let pred=world.species[i],n=pred.population[b];if(pred.diet!=='carnivore'||!n)continue;
-   trophicDemand+=n*pred.traits.size*cfg.energy.demand_per_size;
+   trophicDemand+=n*Math.pow(pred.traits.size,0.75)*cfg.energy.demand_per_size;
    let eligible=world.species.filter(sp=>sp.id!==i&&sp.diet==='herbivore'&&sp.population[b]>0&&sp.traits.size<=pred.traits.size+(cfg.predation.max_prey_size_advantage??1)).sort((a,z)=>z.population[b]-a.population[b]).slice(0,pred.traits.breadth);
    let total=eligible.reduce((a,p)=>a+p.population[b],0);if(!total)continue;
-   let target=n*pred.traits.size*cfg.energy.demand_per_size*(1+maxBirthFrac[i]);
+   let target=n*Math.pow(pred.traits.size,0.75)*cfg.energy.demand_per_size*(1+maxBirthFrac[i]);
    for(let prey of eligible){
     let share=prey.population[b]/total,chance=clamp(cfg.predation.base_capture_probability*cfg.reproduction.trait_multipliers[pred.traits.attack-1]/cfg.reproduction.trait_multipliers[prey.traits.defense-1]);
     let encounter=prey.population[b]/(prey.population[b]+cfg.predation.prey_encounter_scale);
@@ -239,7 +239,7 @@ function step(){
  // Allocate acquired energy to survivors first, then to newborns, not both.
  for(let i=0;i<S;i++)for(let b=0;b<6;b++){
   let sp=world.species[i],n=sp.population[b];if(!n)continue;
-  let remaining=n-predationLoss[i][b],maintenance=sp.traits.size*cfg.energy.demand_per_size;
+  let remaining=n-predationLoss[i][b],maintenance=Math.pow(sp.traits.size,0.75)*cfg.energy.demand_per_size;
   let support=maintenance>0?energy[i][b]/maintenance:0;
   let foodFraction=clamp(support/Math.max(1,remaining));
   let starvation=clamp((1-foodFraction)*.85);
