@@ -106,3 +106,21 @@ test('first simulated turn creates colonization news with forced migration',asyn
  expect(check.log).toContain('primera colonización');
  for(const c of check.entries)expect(check.baseline[c.id][c.biome]).toBe(0);
 });
+
+test('balance v6: adaptability governs dispersal and trait budget is 15',async({page})=>{
+ await page.goto('file://'+path.resolve('index.html'));
+ await page.locator('#worldCreateToggle').click();
+ await page.locator('#wCreate').click();
+ const result=await page.evaluate(()=>{
+  const generated=Array.from({length:60},()=>traits());
+  const totals=generated.map(t=>Object.values(t).reduce((a,b)=>a+b,0));
+  const p=cfg.dispersal.base_probability;
+  const multipliers=cfg.dispersal.adaptability_multipliers;
+  const defaults=Object.keys(TRAIT_NAMES).map(k=>Number(document.getElementById('tr_'+k).value));
+  return {totals,p,multipliers,defaults};
+ });
+ expect(new Set(result.totals)).toEqual(new Set([15]));
+ expect(result.p).toBe(.002);
+ expect(result.multipliers).toEqual([.02,.07,.2,.6,1.2]);
+ expect(result.defaults.reduce((a,b)=>a+b,0)).toBe(15);
+});
