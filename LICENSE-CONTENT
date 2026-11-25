@@ -1,0 +1,47 @@
+# Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Copyright (c) 2026 Javier Buezo Bravo
+Afiliación: Universidad Pública de Navarra (UPNA).
+
+Los materiales educativos originales de BioWorld sobre los que Javier Buezo
+Bravo disponga de los derechos necesarios se ofrecen bajo Creative Commons
+Attribution 4.0 International (CC BY 4.0).
+
+Texto legal vinculante: https://creativecommons.org/licenses/by/4.0/legalcode
+Texto legal en español: https://creativecommons.org/licenses/by/4.0/legalcode.es
+Resumen: https://creativecommons.org/licenses/by/4.0/deed.es
+
+## Alcance
+- Textos, instrucciones, ejemplos ficticios, explicaciones y escenarios
+  didácticos originales integrados en index.html y visor.html, y documentación
+  pedagógica original.
+- Composiciones gráficas y esquemas ecológicos originales del atlas y las
+  visualizaciones, en atlas.js, index.html y visor.html, en la medida en que
+  sus derechos correspondan al autor.
+- El motor de simulación, algoritmos, implementación de gráficos, interfaz y
+  pruebas de software se rigen por LICENSE (MIT), no por esta licencia de
+  contenidos.
+
+## Exclusiones
+- Bibliotecas y herramientas de terceros (incluido Playwright, Node.js y
+  acciones de GitHub), fuentes del sistema, glifos emoji, marcas y cualquier
+  material externo o de titularidad no confirmada conservan sus condiciones.
+- Fichas de especies, datos, partidas, trabajos, resultados o aportaciones del
+  alumnado o terceros no quedan licenciados por este documento, aunque se
+  introduzcan, exporten o publiquen con la aplicación.
+- El repositorio separado BioWorld-Visor y sus datos no forman parte de esta
+  concesión.
+- No se otorgan derechos que correspondan a la UPNA u otros titulares; la
+  afiliación no implica aval institucional ni concesión de derechos sobre marcas.
+
+## Atribución recomendada
+Javier Buezo Bravo (2026). BioWorld: simulador docente interactivo de ecología.
+Universidad Pública de Navarra (afiliación).
+https://github.com/JavierBuezo/Bioworld — CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/).
+Indique si ha realizado modificaciones. El año identifica la documentación y
+declaración de autoría de 2026, no una fecha certificada de primera publicación.
+
+Se permite compartir y adaptar el contenido licenciado, incluso comercialmente,
+con atribución, enlace a la licencia e indicación de modificaciones, conforme
+al texto legal. No se añaden restricciones a CC BY 4.0.
